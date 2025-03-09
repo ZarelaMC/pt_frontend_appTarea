@@ -59,6 +59,6 @@ jobs:
             exit 1  # Falla el job si el análisis no pasa
           fi
 
-          echo "SONAR_PROJECT_KEY: ${SONAR_PROJECT_KEY}"
-          echo "SONAR_TOKEN: ${SONAR_TOKEN}"
-          echo "Respuesta de la API: ${RESPONSE}"
+            echo "SONAR_PROJECT_KEY: ${SONAR_PROJECT_KEY}"
+            echo "SONAR_TOKEN: ${SONAR_TOKEN}"
+            echo "Respuesta de la API: ${RESPONSE}"
