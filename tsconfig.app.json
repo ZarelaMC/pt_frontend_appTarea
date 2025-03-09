@@ -6,9 +6,16 @@
     "types": []
   },
   "files": [
-    "src/main.ts"
+    "src/main.ts",       // Archivo de entrada principal
+    "src/polyfills.ts"   // Archivo de polyfills (si lo usas)
   ],
   "include": [
-    "src/**/*.d.ts"
+    "src/**/*.ts",       // Incluye todos los archivos TypeScript en src
+    "src/**/*.d.ts"      // Incluye archivos de definición de tipos
+  ],
+  "exclude": [
+    "src/test.ts",       // Excluye archivos de pruebas
+    "src/**/*.spec.ts",  // Excluye archivos de pruebas unitarias
+    "src/**/*.mock.ts"   // Excluye archivos de mocks (si los tienes)
   ]
 }
