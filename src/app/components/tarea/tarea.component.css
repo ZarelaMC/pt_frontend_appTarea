@@ -1,0 +1,111 @@
+/* Contenedor principal */
+.tareas-container {
+    max-width: 400px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: 'Arial', sans-serif;
+  }
+  
+  /* Título con icono */
+  h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  /* Lista de tareas */
+  .tareas-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .tarea-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: background 0.3s ease;
+  }
+  
+  .tarea-item:hover {
+    background: #f1f1f1;
+  }
+  
+  /* Checkbox personalizado */
+  .tarea-item input[type="checkbox"] {
+    margin-right: 10px;
+    transform: scale(1.2);
+    accent-color: #007bff;
+  }
+  
+  /* Texto de la tarea */
+  .tarea-item span {
+    flex-grow: 1;
+    color: #333;
+    font-size: 14px;
+  }
+  
+  /* Estilo cuando la tarea está completada */
+  .tarea-item .completed {
+    text-decoration: line-through;
+    color: #888;
+  }
+  
+  /* Botón de eliminar con ícono */
+  .delete-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+  
+  .delete-btn:hover {
+    color: #c82333;
+  }
+  
+  /* Sección de nueva tarea */
+  .new-tarea {
+    display: flex;
+    margin-top: 15px;
+  }
+  
+  .new-tarea input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+  }
+  
+  /* Botón agregar con ícono */
+  .add-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    transition: background 0.3s;
+  }
+  
+  .add-btn:hover {
+    background: #0056b3;
+  }
+  

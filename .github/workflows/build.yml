@@ -1,0 +1,59 @@
+name: Análisis CI con SonarCloud
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonarqube:
+    name: SonarQube
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Descargar el código del repositorio
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: 📦 Instalar dependencias
+        run: npm ci
+
+      - name: 🧪 Ejecutar pruebas con Jest - generación de coverage
+        run: npx jest --coverage
+
+      - name: 🔍 Escanear código con SonarCloud
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+
+      - name: 🛑 Verificar resultado de SonarCloud
+        id: sonarcloud-check
+        run: |
+          # Obtener el estado de calidad del análisis de SonarCloud
+          SONAR_PROJECT_KEY=${{ secrets.SONAR_PROJECT_KEY }}
+          SONAR_TOKEN=${{ secrets.SONAR_TOKEN }}
+          SONAR_URL="https://sonarcloud.io/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}"
+
+          # Hacer una solicitud a la API de SonarCloud para obtener el estado
+          RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" "${SONAR_URL}")
+          STATUS=$(echo "${RESPONSE}" | jq -r '.projectStatus.status')
+
+          # Verificar el estado y mostrar el mensaje correspondiente
+          if [ "${STATUS}" == "OK" ]; then
+            echo "✅ El análisis de SonarCloud ha pasado correctamente."
+          else
+            echo "❌ El análisis de SonarCloud ha fallado."
+            echo "Detalles del fallo:"
+            echo "${RESPONSE}" | jq '.projectStatus.conditions'
+            exit 1  # Falla el job si el análisis no pasa
+          fi
