@@ -26,8 +26,9 @@ jobs:
       - name: 📦 Instalar dependencias
         run: npm ci
 
-      - name: 🧪 Ejecutar pruebas con Jest - generación de coverage
-        run: npx jest --coverage
+      - name: 🧪 Ejecutar pruebas con Karma y Jasmine - generación de coverage
+        run: |
+          npm run test -- --no-watch --code-coverage --browsers=ChromeHeadless
 
       - name: 🔍 Escanear código con SonarCloud
         uses: SonarSource/sonarqube-scan-action@v4
