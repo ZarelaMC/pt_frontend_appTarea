@@ -16,7 +16,7 @@
             "outputPath": "dist/modelo_proyecto_dawii_frontend_202401",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": "src/polyfills.ts",
+            "polyfills": ["src/polyfills.ts"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
