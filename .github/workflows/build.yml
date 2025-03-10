@@ -63,11 +63,22 @@ jobs:
       - name: 📥 Acceder al repositorio
         uses: actions/checkout@v3  # 🔄 Versión consistente
 
-      - name: 📦 Instalar dependencias
-        run: npm install  # 🧩 Instala todas las dependencias
+      - name: 🗑️ Limpiar caché y node_modules
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm cache clean --force
+
+      - name: 🔧 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: 📦 Instalar dependencias (npm ci)
+        run: npm ci  # 🔄 Usa npm ci para consistencia
 
       - name: 🛠️ Compilar proyecto (npm run build)
-        run: npm run build  # 🏗️ Genera archivos de producción
+        run: npm run build -- --verbose  # 🏗️ Genera archivos de producción y muestra logs detallados
 
       - name: 🚀 Sincronizar con S3
         uses: jakejarvis/s3-sync-action@master
@@ -91,7 +102,7 @@ jobs:
         if: failure()  # 🔥 Solo si hay fallos
         run: |
           echo "❌ Error al subir archivos a S3"
-          echo "Verifica:"
+          echo "Verifica archivos faltantes, dependencias o también:"
           echo "1. Credenciales de AWS en Secrets 🗝️"
           echo "2. Nombre del bucket S3"
           echo "3. Permisos del bucket (reglas de acceso)🔓"
