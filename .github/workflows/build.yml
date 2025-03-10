@@ -88,7 +88,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'sa-east-1'
-          SOURCE_DIR: 'dist/appTareas'
+          SOURCE_DIR: 'dist/appTareas/browser'
 
       - name: ✅ Validar despliegue en S3
         if: success()  # 🎯 Solo si el paso anterior fue exitoso
@@ -101,7 +101,3 @@ jobs:
         if: failure()  # 🔥 Solo si hay fallos
         run: |
           echo "❌ Error al subir archivos a S3"
-          echo "Verifica archivos faltantes, dependencias o también:"
-          echo "1. Credenciales de AWS en Secrets 🗝️"
-          echo "2. Nombre del bucket S3"
-          echo "3. Permisos del bucket (reglas de acceso)🔓"
