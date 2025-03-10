@@ -56,10 +56,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "modelo_proyecto_dawii_frontend_202401:build:production"
+              "buildTarget": "appTareas:build:production"
             },
             "development": {
-              "buildTarget": "modelo_proyecto_dawii_frontend_202401:build:development"
+              "buildTarget": "appTareas:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -67,7 +67,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "modelo_proyecto_dawii_frontend_202401:build"
+            "buildTarget": "appTareas:build"
           }
         },
         "test": {
