@@ -102,6 +102,13 @@ jobs:
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             AWS_DEFAULT_REGION: 'us-west-2'
 
+        - name: 🔑 Configurar credenciales base de AWS para asumir rol
+          run: |
+            aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws configure set region us-west-2
+
+
         - name: 🛡️ Asumir temporalmente el rol IAM para CodeDeploy (CodeDeploy-rol)
           id: assume-role
           run: |
@@ -133,10 +140,7 @@ jobs:
               --query "deploymentId" --output text)
 
             echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
-          env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: 'us-west-2'
+    
 
         - name: 🔍 Monitorear estado del despliegue
           run: |
@@ -160,7 +164,3 @@ jobs:
               echo "❌ Despliegue FALLÓ. Estado final: $STATUS"
               exit 1
             fi
-          env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: 'us-west-2'
