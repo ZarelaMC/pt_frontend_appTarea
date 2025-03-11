@@ -1,4 +1,4 @@
-name: Análisis CI con SonarCloud y Deploy (CD) S3 
+name: Análisis CI con SonarCloud y Deploy (CD) S3
 
 on:
   push:
@@ -10,157 +10,117 @@ on:
 
 jobs:
   sonarqube:
-    name: SonarQube
+    name: 🔍 SonarQube Analysis
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Descargar el código del repositorio
-        uses: actions/checkout@v3  # ✅ Versión actualizada
+      - name: 📥 Checkout del código
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: 🔧 Configurar Node.js
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
       - name: 📦 Instalar dependencias
-        run: npm ci  # 🔐 Instalación segura con package-lock.json
+        run: npm ci
 
-      - name: 🛠️ Dar permisos a Karma
-        run: chmod +x node_modules/.bin/karma
-
-      - name: 🧪 Ejecutar pruebas con Karma y Jasmine - generación de coverage
+      - name: 🧪 Ejecutar pruebas y cobertura con Karma
         run: |
-          npm run test -- --no-watch --code-coverage --browsers=ChromeHeadless  # 📊 Genera reporte de cobertura
+          chmod +x node_modules/.bin/karma
+          npm run test -- --no-watch --code-coverage --browsers=ChromeHeadless
 
-      - name: 🔍 Escanear código con SonarCloud
+      - name: 🔍 Análisis SonarCloud
         uses: SonarSource/sonarqube-scan-action@v4
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
           SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
 
-      - name: 🛑 Verificar resultado de SonarCloud
-        id: sonarcloud-check
+      - name: ✅ Validar Quality Gate de SonarCloud
         run: |
-          SONAR_PROJECT_KEY=${{ secrets.SONAR_PROJECT_KEY }}
-          SONAR_TOKEN=${{ secrets.SONAR_TOKEN }}
-          SONAR_URL="https://sonarcloud.io/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}"
-
-          RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" "${SONAR_URL}")
+          RESPONSE=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${{ secrets.SONAR_PROJECT_KEY }}")
           STATUS=$(echo "${RESPONSE}" | jq -r '.projectStatus.status')
-
-          if [ "${STATUS}" == "OK" ]; then
-            echo "✅ El análisis de SonarCloud ha pasado correctamente."
-          else
-            echo "❌ El análisis de SonarCloud ha fallado."
-            echo "Detalles del fallo:"
+          if [ "$STATUS" != "OK" ]; then
+            echo "❌ Quality Gate fallido"
             echo "${RESPONSE}" | jq '.projectStatus.conditions'
-            exit 1  # 💥 Fuerza el fallo del job
+            exit 1
           fi
 
   deploy:
-      name: 🚀 Deploy S3 + CodeDeploy
-      runs-on: ubuntu-latest
-      needs: sonarqube
-      steps:
-        - name: 📥 Checkout del código
-          uses: actions/checkout@v3
+    name: 🚀 Deploy S3 + CodeDeploy
+    runs-on: ubuntu-latest
+    needs: sonarqube
+    steps:
+      - name: 📥 Checkout del código
+        uses: actions/checkout@v3
 
-        - name: 🔧 Configurar Node.js
-          uses: actions/setup-node@v4
-          with:
-            node-version: 18
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-        - name: 📦 Instalar dependencias
-          run: npm ci
+      - name: 📦 Instalar dependencias
+        run: npm ci
 
-        - name: 🛠️ Compilar aplicación Angular
-          run: npm run build -- --verbose
+      - name: 🛠️ Compilar aplicación Angular
+        run: npm run build -- --verbose
 
-        - name: 📁 Empaquetar archivos del build (build.zip para CodeDeploy)
-          run: |
-            cd dist/appTareas/browser
-            zip -r ../../../build.zip .
-            cd ../../../
+      - name: 📁 Crear build.zip
+        run: |
+          cd dist/appTareas/browser
+          zip -r ../../../../build.zip .
+          cd ../../../../
 
-        - name: 🚀 Subir a S3 
-          uses: jakejarvis/s3-sync-action@master
-          with:
-            args: --delete
-          env:
-            AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_REGION: 'us-west-2'
-            SOURCE_DIR: 'dist/appTareas/browser'
+      - name: 📤 Subir build.zip a S3
+        run: aws s3 cp build.zip s3://${{ secrets.AWS_S3_BUCKET }}/build.zip
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-2
 
-        - name: 📤 Subir build.zip para CodeDeploy
-          run: aws s3 cp build.zip s3://${{ secrets.AWS_S3_BUCKET }}/build.zip
-          env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: 'us-west-2'
+      - name: 🔐 Asumir rol IAM (CodeDeploy)
+        id: assume-role
+        run: |
+          echo "🔐 Asumiendo el rol IAM..."
+          ROLE=$(aws sts assume-role \
+            --role-arn "${{ secrets.CODEDEPLOY_ROLE_ARN }}" \
+            --role-session-name deploySession)
 
-        - name: 🔑 Configurar credenciales base de AWS para asumir rol
-          run: |
-            aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws configure set region us-west-2
+          echo "AWS_ACCESS_KEY_ID=$(echo $ROLE | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$(echo $ROLE | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$(echo $ROLE | jq -r '.Credentials.SessionToken')" >> $GITHUB_ENV
 
+      - name: 🚀 Desplegar con CodeDeploy
+        id: deploy
+        run: |
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name AppTareas \
+            --deployment-group-name GrupoDeploy-EC2 \
+            --deployment-config-name CodeDeployDefault.OneAtATime \
+            --s3-location bucket=${{ secrets.AWS_S3_BUCKET }},key=build.zip,bundleType=zip \
+            --region us-west-2 \
+            --query "deploymentId" --output text)
 
-        - name: 🛡️ Asumir temporalmente el rol IAM para CodeDeploy (CodeDeploy-rol)
-          id: assume-role
-          run: |
-            echo "🔐 Asumiendo el rol IAM de CodeDeploy..."
-            ASSUMED_ROLE=$(aws sts assume-role \
-              --role-arn "${{ secrets.CODEDEPLOY_ROLE_ARN }}" \
-              --role-session-name deploySession)
-        
-            export AWS_ACCESS_KEY_ID=$(echo $ASSUMED_ROLE | jq -r '.Credentials.AccessKeyId')
-            export AWS_SECRET_ACCESS_KEY=$(echo $ASSUMED_ROLE | jq -r '.Credentials.SecretAccessKey')
-            export AWS_SESSION_TOKEN=$(echo $ASSUMED_ROLE | jq -r '.Credentials.SessionToken')
-        
-            echo "✅ Rol asumido correctamente."
-        
-            # 👉 Guardar las credenciales como outputs para usarlas luego
-            echo "AWS_ACCESS_KEY_ID=$(echo $ASSUMED_ROLE | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=$(echo $ASSUMED_ROLE | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
-            echo "AWS_SESSION_TOKEN=$(echo $ASSUMED_ROLE | jq -r '.Credentials.SessionToken')" >> $GITHUB_ENV
+          echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
 
-        - name: 🚀 Desplegar con AWS CodeDeploy vía AWS CLI
-          id: deploy
-          run: |
-            DEPLOYMENT_ID=$(aws deploy create-deployment \
-              --application-name AppTareas \
-              --deployment-group-name GrupoDeploy-EC2 \
-              --deployment-config-name CodeDeployDefault.OneAtATime \
-              --s3-location bucket=${{ secrets.AWS_S3_BUCKET }},key=build.zip,bundleType=zip \
+      - name: 🔍 Monitorear despliegue
+        run: |
+          DEPLOYMENT_ID=${{ steps.deploy.outputs.deployment_id }}
+          STATUS="InProgress"
+          while [[ "$STATUS" == "InProgress" || "$STATUS" == "Created" ]]; do
+            STATUS=$(aws deploy get-deployment \
+              --deployment-id $DEPLOYMENT_ID \
               --region us-west-2 \
-              --query "deploymentId" --output text)
+              --query "deploymentInfo.status" --output text)
+            echo "➡ Estado: $STATUS"
+            sleep 10
+          done
 
-            echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
-    
-
-        - name: 🔍 Monitorear estado del despliegue
-          run: |
-            DEPLOYMENT_ID=${{ steps.deploy.outputs.deployment_id }}
-            echo "⏳ Esperando a que finalice el despliegue ID: $DEPLOYMENT_ID"
-
-            STATUS="InProgress"
-            while [[ "$STATUS" == "InProgress" || "$STATUS" == "Created" ]]; do
-              STATUS=$(aws deploy get-deployment \
-                --deployment-id $DEPLOYMENT_ID \
-                --region us-west-2 \
-                --query "deploymentInfo.status" --output text)
-
-              echo "➡ Estado actual: $STATUS"
-              sleep 10
-            done
-
-            if [ "$STATUS" = "Succeeded" ]; then
-              echo "✅ ¡Despliegue COMPLETADO correctamente!"
-            else
-              echo "❌ Despliegue FALLÓ. Estado final: $STATUS"
-              exit 1
-            fi
+          if [ "$STATUS" = "Succeeded" ]; then
+            echo "✅ ¡Despliegue COMPLETADO!"
+          else
+            echo "❌ Despliegue fallido: $STATUS"
+            exit 1
+          fi
