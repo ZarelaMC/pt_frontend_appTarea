@@ -82,7 +82,7 @@ jobs:
           run: |        
             mkdir deploy_folder_zip
             cp appspec.yml deploy_folder_zip/
-            cp -r scripts deploy_folder_zip/
+            cp -r script deploy_folder_zip/
 
             chmod +x deploy_folder_zip/script/*.sh  
 
