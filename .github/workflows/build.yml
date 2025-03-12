@@ -93,6 +93,10 @@ jobs:
           run: |
               aws s3 cp build.zip s3://${{ secrets.AWS_S3_BUCKET }}/build.zip
               echo "✅ build.zip subido exitosamente a S3"
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: 'us-west-2'
           
         - name: 🔍 Validar que build.zip se subió correctamente
           run: |
@@ -102,6 +106,10 @@ jobs:
               echo "❌ ERROR: build.zip NO se encuentra en S3"
               exit 1
             fi
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: 'us-west-2'
 
 
 
