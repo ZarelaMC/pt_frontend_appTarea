@@ -6,4 +6,5 @@ if [ -d /var/www/html ]; then
 else
   echo "📁 Creando carpeta /var/www/html"
   mkdir -p /var/www/html
+  sudo chown ec2-user:ec2-user /var/www/html
 fi
