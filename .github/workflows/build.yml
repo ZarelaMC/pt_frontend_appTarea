@@ -111,49 +111,27 @@ jobs:
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             AWS_DEFAULT_REGION: 'us-west-2'
 
-
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-        - name: 🛡️ Asumir temporalmente el rol IAM para CodeDeploy (CodeDeploy-rol)
-          id: assume-role
-          run: |
-              echo "🔐 Asumiendo el rol IAM..."
-              ROLE=$(aws sts assume-role \
-                --role-arn "${{ secrets.CODEDEPLOY_ROLE_ARN }}" \
-                --role-session-name deploySession)
-  
-              echo "AWS_ACCESS_KEY_ID=$(echo $ROLE | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
-              echo "AWS_SECRET_ACCESS_KEY=$(echo $ROLE | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
-              echo "AWS_SESSION_TOKEN=$(echo $ROLE | jq -r '.Credentials.SessionToken')" >> $GITHUB_ENV
-  
         - name: 🚀 Desplegar con CodeDeploy
           id: deploy
           run: |
             DEPLOYMENT_ID=$(aws deploy create-deployment \
-              --application-name AppTareas \
-              --deployment-group-name GrupoDeploy-EC2 \
+              --application-name aplicacion-pt \
+              --deployment-group-name grupo-implemnetacion-pt \
               --deployment-config-name CodeDeployDefault.OneAtATime \
               --s3-location bucket=${{ secrets.AWS_S3_BUCKET }},key=build.zip,bundleType=zip \
               --region us-west-2 \
               --query "deploymentId" --output text)
-
+  
             echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
-      
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: 'us-west-2'
   
         - name: 🔍 Monitorear estado del despliegue
           run: |
             DEPLOYMENT_ID=${{ steps.deploy.outputs.deployment_id }}
-            echo "⏳ Esperando a que finalice el despliegue ID: $DEPLOYMENT_ID"
+            echo "⏳ Esperando finalización del despliegue ID: $DEPLOYMENT_ID"
 
             STATUS="InProgress"
             while [[ "$STATUS" == "InProgress" || "$STATUS" == "Created" ]]; do
@@ -161,17 +139,32 @@ jobs:
                 --deployment-id $DEPLOYMENT_ID \
                 --region us-west-2 \
                 --query "deploymentInfo.status" --output text)
-
               echo "➡ Estado actual: $STATUS"
               sleep 10
             done
 
-            if [ "$STATUS" = "Succeeded" ]; then
-              echo "✅ ¡Despliegue COMPLETADO correctamente!"
+            if [ "$STATUS" == "Succeeded" ]; then
+              echo "✅ ¡Despliegue exitoso!"
             else
-              echo "❌ Despliegue FALLÓ. Estado final: $STATUS"
+              echo "❌ Despliegue fallido. Estado final: $STATUS"
               exit 1
             fi
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: 'us-west-2'
+      
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
 
 
       
