@@ -147,8 +147,15 @@ jobs:
               echo "✅ ¡Despliegue exitoso!"
             else
               echo "❌ Despliegue fallido. Estado final: $STATUS"
+              echo "🔍 Detalle del error:"
+              aws deploy get-deployment \
+                --deployment-id $DEPLOYMENT_ID \
+                --region us-west-2 \
+                --query "deploymentInfo.errorInformation" \
+                --output json
               exit 1
             fi
+
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
