@@ -3,7 +3,7 @@ os: linux
 files:
   - source: /
     destination: /var/www/html  #la ruta donde alojas tu frontend en EC2
-
+    overwrite: true
 hooks:
   BeforeInstall:
     - location: script/before_install.sh
