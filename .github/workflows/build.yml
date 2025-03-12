@@ -115,8 +115,8 @@ jobs:
           id: deploy
           run: |
             DEPLOYMENT_ID=$(aws deploy create-deployment \
-              --application-name AppTareas \
-              --deployment-group-name Grupo-AppTareas \
+              --application-name aplicacion-pt \
+              --deployment-group-name grupo-implementacion-pt \
               --deployment-config-name CodeDeployDefault.OneAtATime \
               --s3-location bucket=${{ secrets.AWS_S3_BUCKET }},key=build.zip,bundleType=zip \
               --region us-west-2 \
