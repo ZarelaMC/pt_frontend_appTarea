@@ -4,18 +4,16 @@ files:
   - source: /
     destination: /var/www/html  #la ruta donde alojas tu frontend en EC2
     overwrite: true
-    owner: ec2-user
-    group: ec2-user
 hooks:
   BeforeInstall:
     - location: script/before_install.sh
       timeout: 180
-      runas: ec2-user
+      runas: root  # Ejecutar como root para evitar problemas de permisos
   AfterInstall:
     - location: script/after_install.sh
       timeout: 180
-      runas: ec2-user
+      runas: root  
   ApplicationStart:
     - location: script/start_server.sh
       timeout: 180
-      runas: ec2-user
+      runas: root  
