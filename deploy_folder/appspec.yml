@@ -1,7 +1,7 @@
 version: 0.0
 os: linux
 files:
-  - source: /
+  - source: dist/appTareas/browser
     destination: /var/www/html  #la ruta donde alojas tu frontend en EC2
 
 hooks:

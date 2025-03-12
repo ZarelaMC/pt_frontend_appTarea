@@ -59,8 +59,8 @@ jobs:
             exit 1  # 💥 Fuerza el fallo del job
           fi
 
-  deploy:
-      name: 🚀 Deploy S3 + CodeDeploy
+  deployS3:
+      name: 🚀 Deploy S3 
       runs-on: ubuntu-latest
       needs: sonarqube
       steps:
@@ -79,81 +79,30 @@ jobs:
           run: npm run build -- --verbose
 
         - name: 📁 Empaquetar archivos del build (build.zip para CodeDeploy)
+          run: |        
+            mkdir deploy_folder_zip
+            cp appspec.yml deploy_folder_zip/
+            cp -r scripts deploy_folder_zip/
+
+            cp -r dist/appTareas/browser/* deploy_folder_zip/
+
+            cd deploy_folder_zip
+            zip -r ../build.zip .
+
+        - name: 🚀 Subir build.zip a S3
           run: |
-            cd dist/appTareas/browser
-            zip -r ../../../build.zip .
-            cd ../../../
-
-        - name: 🚀 Subir a S3 
-          uses: jakejarvis/s3-sync-action@master
-          with:
-            args: --delete
-          env:
-            AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_REGION: 'us-west-2'
-            SOURCE_DIR: 'dist/appTareas/browser'
-
-        - name: 📤 Subir build.zip para CodeDeploy
-          run: aws s3 cp build.zip s3://${{ secrets.AWS_S3_BUCKET }}/build.zip
-          env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: 'us-west-2'
-
-        - name: 🔑 Configurar credenciales base de AWS para asumir rol
+              aws s3 cp build.zip s3://${{ secrets.AWS_S3_BUCKET }}/build.zip
+              echo "✅ build.zip subido exitosamente a S3"
+          
+        - name: 🔍 Validar que build.zip se subió correctamente
           run: |
-            aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws configure set region us-west-2
-
-
-        - name: 🛡️ Asumir temporalmente el rol IAM para CodeDeploy (CodeDeploy-rol)
-          id: assume-role
-          run: |
-            echo "🔐 Asumiendo el rol IAM..."
-            ROLE=$(aws sts assume-role \
-              --role-arn "${{ secrets.CODEDEPLOY_ROLE_ARN }}" \
-              --role-session-name deploySession)
-
-            echo "AWS_ACCESS_KEY_ID=$(echo $ROLE | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=$(echo $ROLE | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
-            echo "AWS_SESSION_TOKEN=$(echo $ROLE | jq -r '.Credentials.SessionToken')" >> $GITHUB_ENV
-
-        - name: 🚀 Desplegar con CodeDeploy
-          id: deploy
-          run: |
-            DEPLOYMENT_ID=$(aws deploy create-deployment \
-              --application-name AppTareas \
-              --deployment-group-name GrupoDeploy-EC2 \
-              --deployment-config-name CodeDeployDefault.OneAtATime \
-              --s3-location bucket=${{ secrets.AWS_S3_BUCKET }},key=build.zip,bundleType=zip \
-              --region us-west-2 \
-              --query "deploymentId" --output text)
-
-            echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
-    
-
-        - name: 🔍 Monitorear estado del despliegue
-          run: |
-            DEPLOYMENT_ID=${{ steps.deploy.outputs.deployment_id }}
-            echo "⏳ Esperando a que finalice el despliegue ID: $DEPLOYMENT_ID"
-
-            STATUS="InProgress"
-            while [[ "$STATUS" == "InProgress" || "$STATUS" == "Created" ]]; do
-              STATUS=$(aws deploy get-deployment \
-                --deployment-id $DEPLOYMENT_ID \
-                --region us-west-2 \
-                --query "deploymentInfo.status" --output text)
-
-              echo "➡ Estado actual: $STATUS"
-              sleep 10
-            done
-
-            if [ "$STATUS" = "Succeeded" ]; then
-              echo "✅ ¡Despliegue COMPLETADO correctamente!"
+            if aws s3 ls s3://${{ secrets.AWS_S3_BUCKET }}/build.zip; then
+              echo "✅ Validación exitosa: build.zip está en S3"
             else
-              echo "❌ Despliegue FALLÓ. Estado final: $STATUS"
+              echo "❌ ERROR: build.zip NO se encuentra en S3"
               exit 1
             fi
+
+
+
+        
