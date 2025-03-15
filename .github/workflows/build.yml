@@ -91,18 +91,46 @@ jobs:
             cd deploy_folder_zip
             zip -r ../build.zip .
 
+        - name: 📦 Instalar AWS CLI (para ejecutar comandos AWS) y jq (parsear el JSON que devuelve AWS Secrets Manager)
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y python3-pip jq
+            pip3 install awscli --upgrade --user
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
+            
+        - name: 🔐 Configurar credenciales AWS
+          uses: aws-actions/configure-aws-credentials@v2
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }}
+
+        - name: 🔐 Obtener secretos desde AWS Secrets Manager
+          id: get-secrets
+          run: |
+            echo "Recuperando secretos..."
+            SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id s3-ec2-secrets --region ${{ secrets.AWS_REGION }} | jq -r .SecretString)
+
+            AWS_S3_BUCKET=$(echo $SECRET_JSON | jq -r .AWS_S3_BUCKET)
+            AWS_GRUPO_IMPLEMENTACION=$(echo $SECRET_JSON | jq -r .AWS_GRUPO_IMPLEMENTACION)
+            AWS_APLICACION_CODE_DEPLOY=$(echo $SECRET_JSON | jq -r .AWS_APLICACION_CODE_DEPLOY)
+
+            echo "AWS_S3_BUCKET=$AWS_S3_BUCKET" >> $GITHUB_ENV
+            echo "AWS_GRUPO_IMPLEMENTACION=$AWS_GRUPO_IMPLEMENTACION" >> $GITHUB_ENV
+            echo "AWS_APLICACION_CODE_DEPLOY=$AWS_APLICACION_CODE_DEPLOY" >> $GITHUB_ENV
+
         - name: 🚀 Subir build.zip a S3
           run: |
-              aws s3 cp build.zip s3://${{ secrets.AWS_S3_BUCKET }}/build.zip
+              aws s3 cp build.zip s3://${{ env.AWS_S3_BUCKET }}/build.zip
               echo "✅ build.zip subido exitosamente a S3"
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: 'us-west-2'
+            AWS_REGION: ${{ secrets.AWS_REGION }}
           
         - name: 🔍 Validar que build.zip se subió correctamente
           run: |
-            if aws s3 ls s3://${{ secrets.AWS_S3_BUCKET }}/build.zip; then
+            if aws s3 ls s3://${{ env.AWS_S3_BUCKET }}/build.zip; then
               echo "✅ Validación exitosa: build.zip está en S3"
             else
               echo "❌ ERROR: build.zip NO se encuentra en S3"
@@ -111,24 +139,24 @@ jobs:
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: 'us-west-2'
+            AWS_REGION: ${{ secrets.AWS_REGION }}
 
         - name: 🚀 Desplegar con CodeDeploy
           id: deploy
           run: |
             DEPLOYMENT_ID=$(aws deploy create-deployment \
-              --application-name aplicacion-pt \
-              --deployment-group-name grupo-implementacion-pt \
+              --application-name ${{ env.AWS_APLICACION_CODE_DEPLOY }} \
+              --deployment-group-name ${{ env.AWS_GRUPO_IMPLEMENTACION }} \
               --deployment-config-name CodeDeployDefault.OneAtATime \
-              --s3-location bucket=${{ secrets.AWS_S3_BUCKET }},key=build.zip,bundleType=zip \
-              --region us-west-2 \
+              --s3-location bucket=${{ env.AWS_S3_BUCKET }},key=build.zip,bundleType=zip \
+              --region ${{ secrets.AWS_REGION }} \
               --query "deploymentId" --output text)
   
             echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: 'us-west-2'
+            AWS_REGION: ${{ secrets.AWS_REGION }}
   
         - name: 🔍 Monitorear estado del despliegue
           run: |
@@ -161,7 +189,7 @@ jobs:
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: 'us-west-2'
+            AWS_REGION: ${{ secrets.AWS_REGION }}
       
           
           
