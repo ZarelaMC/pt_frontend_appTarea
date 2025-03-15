@@ -167,7 +167,7 @@ jobs:
             while [[ "$STATUS" == "InProgress" || "$STATUS" == "Created" ]]; do
               STATUS=$(aws deploy get-deployment \
                 --deployment-id $DEPLOYMENT_ID \
-                --region us-west-2 \
+                --region ${{ secrets.AWS_REGION }} \
                 --query "deploymentInfo.status" --output text)
               echo "➡ Estado actual: $STATUS"
               sleep 10
@@ -180,7 +180,7 @@ jobs:
               echo "🔍 Detalle del error:"
               aws deploy get-deployment \
                 --deployment-id $DEPLOYMENT_ID \
-                --region us-west-2 \
+                --region ${{ secrets.AWS_REGION }} \
                 --query "deploymentInfo.errorInformation" \
                 --output json
               exit 1
